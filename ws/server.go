@@ -83,6 +83,7 @@ func NewServer(ctx context.Context, hook SessionHook, rwCache, retry, ttl int) S
 	if hook == nil {
 		hook = &defaultHook{}
 	}
+	hook = &wrappedHook{hook: hook}
 	mg := newManager(ctx, time.Duration(ttl)*time.Second, hook, retry, rwCache)
 	return &mtServer{cancel: cancel, ctx: c, manager: mg, hook: hook, logger: logging.MustGetLogger("MTubeServer")}
 }

@@ -171,10 +171,11 @@ loop:
 	for {
 		select {
 		case <-s.ctx.Done():
-			s.logger.Debugf("session %d break loop", s.id)
+			s.logger.Debugf("context done , session %d break loop", s.id)
 			break loop
 		case msg, ok := <-s.send:
 			if !ok {
+				s.logger.Debugf("session %d send chan closed,break loop", s.id)
 				break loop
 			}
 			err := s.writeWithRetry(msg)
@@ -208,7 +209,6 @@ func (s *Session) close() {
 	s.cancel()
 	s.rw.Lock()
 	defer s.rw.Unlock()
-	s.manager.Remove(s.id)
 	atomic.StoreInt32(&s.closed, 1)
 	if err := s.conn.Close(); err != nil {
 		s.logger.Warningf("session %d connection close error %s", s.id, err.Error())
@@ -216,4 +216,5 @@ func (s *Session) close() {
 	s.onClose()
 	close(s.send)
 	close(s.recv)
+	s.manager.Remove(s.id)
 }

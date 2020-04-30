@@ -61,6 +61,7 @@ func (manager *SessionManager) Put(session *Session) error {
 	}
 	manager.sessions[session.ID()] = session
 	manager.wg.Add(1)
+	manager.logger.Debugf("add session %d ", session.id)
 	return nil
 }
 func (manager *SessionManager) Closed() bool {
@@ -87,8 +88,9 @@ func (manager *SessionManager) Remove(id uint64) {
 	if !ok {
 		return
 	}
-	manager.wg.Done()
 	delete(manager.sessions, id)
+	manager.logger.Debugf("remove session %s", id)
+	manager.wg.Done()
 }
 func (manager *SessionManager) Clients() int {
 	manager.rwLocker.RLock()

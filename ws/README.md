@@ -1,4 +1,4 @@
-## Silly-Code WS![goproxy.cn](goproxy.cn/stats/github.com/irealing/silly-code/ws/badges/download-count.svg)
+## Silly-Code WS![goproxy.cn](https://goproxy.cn/stats/github.com/irealing/silly-code/ws/badges/download-count.svg)
 
   简单 WebSocket服务脚手架工具。
   以会话`ws.Session`为核心，每一个WS连接作为一个会话，实现自定义`ws.SessionHook`即可维护会话的各个声明周期。

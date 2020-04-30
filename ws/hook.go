@@ -8,9 +8,21 @@ import (
 )
 
 type SessionHook interface {
+	// BeforeAccept
+	//
+	// Call before accept a websocket connection, validate
 	BeforeAccept(r *http.Request) error
+	// OnAccept
+	//
+	// call after a websocket a websocket connection established
 	OnAccept(session *Session, r *http.Request) error
+	// OnMessage
+	//
+	// callback when receive message
 	OnMessage(session *Session, message Message) error
+	// OnClose
+	//
+	// clean session storage here
 	OnClose(session *Session) error
 }
 

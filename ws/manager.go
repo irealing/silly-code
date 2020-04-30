@@ -89,7 +89,7 @@ func (manager *SessionManager) Remove(id uint64) {
 		return
 	}
 	delete(manager.sessions, id)
-	manager.logger.Debugf("remove session %s", id)
+	manager.logger.Debugf("remove session %d", id)
 	manager.wg.Done()
 }
 func (manager *SessionManager) Clients() int {

@@ -54,7 +54,6 @@ func (server *mtServer) Dispose() {
 func (server *mtServer) Accept(w http.ResponseWriter, r *http.Request) error {
 	if err := server.hook.BeforeAccept(r); err != nil {
 		server.logger.Warning("before accept error", r.RemoteAddr, err)
-		server.writeError(w, err)
 		return err
 	}
 	conn, err := server.Upgrade.Upgrade(w, r, nil)
@@ -72,12 +71,7 @@ func (server *mtServer) Accept(w http.ResponseWriter, r *http.Request) error {
 	}
 	return nil
 }
-func (server *mtServer) writeError(w http.ResponseWriter, err error) {
-	_, err = w.Write([]byte(err.Error()))
-	if err != nil {
-		server.logger.Warningf("write error %s", err)
-	}
-}
+
 func NewServer(ctx context.Context, hook SessionHook, rwCache, retry, ttl int) Server {
 	c, cancel := context.WithCancel(ctx)
 	if hook == nil {

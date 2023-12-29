@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net"
 	"os"
 	"sync"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/op/go-logging"
 )
 
 var globalSessionID uint64 = 0
@@ -30,7 +30,7 @@ type Session struct {
 	rw        sync.RWMutex
 	hook      SessionHook
 	closed    int32
-	logger    *logging.Logger
+	logger    *slog.Logger
 }
 
 func (s *Session) onMessage(message Message) {
@@ -41,7 +41,7 @@ func (s *Session) onMessage(message Message) {
 		return
 	}
 	if err := s.hook.OnMessage(s, message); err != nil {
-		s.logger.Warningf("handled message error %s", err.Error())
+		s.logger.Warn("handled message error %s", "error", err.Error())
 	}
 }
 func (s *Session) onClose() {
@@ -49,10 +49,10 @@ func (s *Session) onClose() {
 		return
 	}
 	if err := s.hook.OnClose(s); err != nil {
-		s.logger.Warningf("session %d onClose error %s", s.id, err)
+		s.logger.Warn("session onClose error ", "session", s.id, "error", err)
 	}
 }
-func newSession(conn *websocket.Conn, manager *SessionManager, retry int, rwCache int) *Session {
+func newSession(conn *websocket.Conn, manager *SessionManager, retry int, rwCache int, logger *slog.Logger) *Session {
 	id := atomic.AddUint64(&globalSessionID, 1)
 	ctx, cancel := context.WithCancel(manager.ctx)
 	send := make(chan Message, rwCache)
@@ -60,7 +60,7 @@ func newSession(conn *websocket.Conn, manager *SessionManager, retry int, rwCach
 	return &Session{
 		id: id, conn: conn, TTL: manager.TTL, ctx: ctx,
 		cancel: cancel, Retry: retry, send: send, recv: recv, manager: manager, hook: manager.hook,
-		logger: wsLogger,
+		logger: logger,
 	}
 }
 
@@ -97,7 +97,7 @@ func (s *Session) write(m Message) error {
 	return s.conn.WriteMessage(m.Type(), m.Bytes())
 }
 func (s *Session) ping() error {
-	return s.writeWithRetry(NewRawMessage(websocket.PingMessage, nil))
+	return s.writeWithRetry(NewByteMessage(websocket.PingMessage, nil))
 }
 func (s *Session) writeWithRetry(m Message) error {
 	var err error
@@ -144,7 +144,7 @@ func (s *Session) receive() (Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &RawMessage{t, data}, nil
+	return &ByteMessage{t, data}, nil
 }
 
 func (s *Session) Send(m Message) error {
@@ -171,16 +171,16 @@ loop:
 	for {
 		select {
 		case <-s.ctx.Done():
-			s.logger.Debugf("context done , session %d break loop", s.id)
+			s.logger.Debug("context done ,  break loop", "session", s.id)
 			break loop
 		case msg, ok := <-s.send:
 			if !ok {
-				s.logger.Debugf("session %d send chan closed,break loop", s.id)
+				s.logger.Debug("session send chan closed,break loop", "session", s.id)
 				break loop
 			}
 			err := s.writeWithRetry(msg)
 			if err != nil {
-				s.logger.Warningf("session %d break loop with error %s ", s.id, err)
+				s.logger.Warn("session break loop with error  ", "session", s.id, "error", err)
 				break
 			}
 		case msg, ok := <-s.recv:
@@ -202,7 +202,7 @@ func (s *Session) Closed() bool {
 	return atomic.LoadInt32(&s.closed) > 0
 }
 func (s *Session) Close() {
-	s.logger.Debugf("session %d Close was called", s.id)
+	s.logger.Debug("session Close was called", "session", s.id)
 	s.closeOnce.Do(s.close)
 }
 func (s *Session) close() {
@@ -211,7 +211,7 @@ func (s *Session) close() {
 	defer s.rw.Unlock()
 	atomic.StoreInt32(&s.closed, 1)
 	if err := s.conn.Close(); err != nil {
-		s.logger.Warningf("session %d connection close error %s", s.id, err.Error())
+		s.logger.Warn("session connection close error ", "session", s.id, "session", err.Error())
 	}
 	s.onClose()
 	close(s.send)

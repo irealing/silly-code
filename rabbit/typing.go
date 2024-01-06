@@ -3,7 +3,6 @@ package rabbit
 import (
 	"context"
 	"fmt"
-	"github.com/op/go-logging"
 )
 
 type ExchangeType string
@@ -14,8 +13,6 @@ const (
 	Topic                       = "topic"
 	connectMQRetry              = 3
 )
-
-var logger = logging.MustGetLogger("rabbit")
 
 type MessageCallback func([]byte) error
 

@@ -1,8 +1,7 @@
 package ws
 
 import (
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"runtime"
 )
@@ -34,18 +33,22 @@ func (*defaultHook) BeforeAccept(r *http.Request) error {
 }
 
 func (*defaultHook) OnAccept(session *Session, r *http.Request) error {
-	wsLogger.Debugf("session %d accept %s", session.id, r.RequestURI)
+	slog.Debug("session accept", "id", session.id, "uri", r.RequestURI, "clientIP", r.RemoteAddr)
 	return nil
 }
 
 func (*defaultHook) OnMessage(session *Session, message Message) error {
-	wsLogger.Debugf("recv msg from session %d %s", session.id, message.Bytes())
-	log.Println(session.Send(message))
+	slog.Debug("recv msg from session", "session", session.id, "data", message.Bytes())
+	if err := session.Send(message); err != nil {
+		slog.Debug("send message to session error", "session", session.id, "error", err)
+	} else {
+		return err
+	}
 	return nil
 }
 
 func (*defaultHook) OnClose(session *Session) error {
-	wsLogger.Info("close session ", session.id)
+	slog.Info("close session ", "session", session.id)
 	return nil
 }
 
@@ -60,7 +63,7 @@ func (w *wrappedHook) handlePanic(event string) {
 	}
 	buf := make([]byte, 2048)
 	n := runtime.Stack(buf, false)
-	fmt.Printf("%s panic %s \n %s", event, err, string(buf[:n]))
+	slog.Error("panic", "event", "event", "err", err, "stack", string(buf[:n]))
 }
 func (w *wrappedHook) BeforeAccept(r *http.Request) error {
 	defer w.handlePanic("BeforeAccept")

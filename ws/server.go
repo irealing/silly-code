@@ -2,11 +2,11 @@ package ws
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/op/go-logging"
 )
 
 type Server interface {
@@ -22,7 +22,7 @@ type mtServer struct {
 	manager *SessionManager
 	hook    SessionHook
 	Upgrade websocket.Upgrader
-	logger  *logging.Logger
+	logger  *slog.Logger
 }
 
 func (server *mtServer) GetSession(idx ...uint64) []*Session {
@@ -53,7 +53,7 @@ func (server *mtServer) Dispose() {
 
 func (server *mtServer) Accept(w http.ResponseWriter, r *http.Request) error {
 	if err := server.hook.BeforeAccept(r); err != nil {
-		server.logger.Warning("before accept error", r.RemoteAddr, err)
+		server.logger.Warn("before accept error", "remoteAddr", r.RemoteAddr, "err", err)
 		return err
 	}
 	conn, err := server.Upgrade.Upgrade(w, r, nil)
@@ -72,12 +72,12 @@ func (server *mtServer) Accept(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func NewServer(ctx context.Context, hook SessionHook, rwCache, retry, ttl int) Server {
+func NewServer(ctx context.Context, logger *slog.Logger, hook SessionHook, rwCache, retry, ttl int) Server {
 	c, cancel := context.WithCancel(ctx)
 	if hook == nil {
 		hook = &defaultHook{}
 	}
 	hook = &wrappedHook{hook: hook}
-	mg := newManager(ctx, time.Duration(ttl)*time.Second, hook, retry, rwCache)
-	return &mtServer{cancel: cancel, ctx: c, manager: mg, hook: hook, logger: logging.MustGetLogger("MTubeServer")}
+	mg := newManager(ctx, logger, time.Duration(ttl)*time.Second, hook, retry, rwCache)
+	return &mtServer{cancel: cancel, ctx: c, manager: mg, hook: hook, logger: logger}
 }

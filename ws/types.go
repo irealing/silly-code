@@ -2,14 +2,11 @@ package ws
 
 import (
 	"errors"
-
-	"github.com/op/go-logging"
 )
 
 var (
 	closedSession        = errors.New("closed session")
 	closedSessionManager = errors.New("closed session manager")
-	wsLogger             = logging.MustGetLogger("WS")
 )
 
 type localError struct {
@@ -35,17 +32,17 @@ type Message interface {
 	Type() int
 	Bytes() []byte
 }
-type RawMessage struct {
+type ByteMessage struct {
 	messageType int
 	body        []byte
 }
 
-func NewRawMessage(t int, body []byte) Message {
-	return &RawMessage{t, body}
+func NewByteMessage(t int, body []byte) Message {
+	return &ByteMessage{t, body}
 }
-func (rm *RawMessage) Type() int {
+func (rm *ByteMessage) Type() int {
 	return rm.messageType
 }
-func (rm *RawMessage) Bytes() []byte {
+func (rm *ByteMessage) Bytes() []byte {
 	return rm.body
 }

@@ -2,8 +2,8 @@ package rabbit
 
 import (
 	"encoding/json"
-	"github.com/op/go-logging"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
+	"log/slog"
 )
 
 type publisher struct {
@@ -11,7 +11,7 @@ type publisher struct {
 	conn      *amqp.Connection
 	ch        *amqp.Channel
 	opt       *Options
-	logger    *logging.Logger
+	logger    *slog.Logger
 }
 
 func (p *publisher) init() (Publisher, error) {
@@ -40,7 +40,7 @@ func (p *publisher) Publishing(key, mineType string, data []byte) error {
 func (p *publisher) Publish(encoder Encoder, data interface{}) error {
 	routing, ret, err := encoder.Encode(data)
 	if err != nil {
-		p.logger.Warning("encode data error", err)
+		p.logger.Warn("encode data error", "error", err)
 		return err
 	}
 	return p.Publishing(routing, encoder.MimeType(), ret)
@@ -49,7 +49,7 @@ func (p *publisher) Publish(encoder Encoder, data interface{}) error {
 func (p *publisher) PublishJson(key string, v interface{}) error {
 	data, err := json.Marshal(v)
 	if err != nil {
-		p.logger.Warning("serialize data error", err)
+		p.logger.Warn("serialize data error", "error", err)
 		return err
 	}
 	return p.Publishing(key, "application/json", data)
